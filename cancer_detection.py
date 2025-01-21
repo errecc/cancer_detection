@@ -61,9 +61,9 @@ class CancerTypesDataset(Dataset):
         return tensor, label
 
 
-path = os.path.join("multi-cancer", "multi", "multi")
+cancer_url = 'https://www.kaggle.com/datasets/obulisainaren/multi-cancer' 
+od.download(cancer_url)
+path = os.path.join("multi-cancer", "Multi Cancer", "Multi Cancer")
 print(path)
 data = CancerTypesDataset(path)
 # Download the dataset
-cancer_url = 'https://www.kaggle.com/datasets/obulisainaren/multi-cancer' 
-od.download(cancer_url)
