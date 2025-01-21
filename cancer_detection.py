@@ -57,13 +57,63 @@ class CancerTypesDataset(Dataset):
     def __getitem__(self, idx):
         image = Image.open(self.data[idx]["file_path"])
         label = self.data[idx]["label"]
-        tensor = torch.tensor(np.array(image))
+        label = torch.tensor(label, dtype = torch.float32)
+        tensor = torch.tensor(np.array(image), dtype = torch.float32)
+        tensor = tensor.reshape([3,512,512])
         return tensor, label
 
+class CancerPredictionModel(pl.LightningModule):
+    def __init__(self):
+        super().__init__()
+        self.loss_fn = torch.nn.CrossEntropyLoss()
+        self.model = torch.nn.Sequential(
+                torch.nn.Conv2d(in_channels=3 , out_channels=16, kernel_size=10 ),
+                torch.nn.MaxPool2d(4),
+                torch.nn.Conv2d(in_channels = 16, out_channels = 4, kernel_size = 5),
+                torch.nn.MaxPool2d(2),
+                torch.nn.Flatten(0),
+                torch.nn.Linear(14400, 1024),
+                torch.nn.ReLU(),
+                torch.nn.Linear(1024, 512),
+                torch.nn.ReLU(),
+                torch.nn.Linear(512,256),
+                torch.nn.ReLU(),
+                torch.nn.Linear(256,128),
+                torch.nn.ReLU(),
+                torch.nn.Linear(128,64),
+                torch.nn.ReLU(),
+                torch.nn.Linear(64,32),
+                torch.nn.ReLU(),
+                torch.nn.Linear(32,1),
+                )
 
+    def forward(self,x):
+        outs = self.model(x)
+        return outs
+
+    def configure_optimizers(self):
+        return torch.optim.Adam(self.parameters())
+
+    def training_step(self, batch, batch_idx):
+        inp, lab = batch
+        out = self(inp)
+        loss = self.loss_fn(out, lab)
+        self.log(f"t_loss", loss)
+        return loss
+
+
+
+# Download the dataset
 cancer_url = 'https://www.kaggle.com/datasets/obulisainaren/multi-cancer' 
 od.download(cancer_url)
 path = os.path.join("multi-cancer", "Multi Cancer", "Multi Cancer")
-print(path)
-data = CancerTypesDataset(path)
-# Download the dataset
+#loss_function = torch.nn.CrossEntropyLoss()
+#optim = torch.optim.Adam(model.parameters())
+
+
+# main loop
+dataset = CancerTypesDataset(path)
+model = CancerPredictionModel()
+loader = DataLoader(dataset, batch_size = 1)
+trainer = pl.Trainer(max_epochs = 10)
+trainer.fit(model, loader)
