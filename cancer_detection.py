@@ -71,7 +71,6 @@ class CancerTypesDataset(Dataset):
         image = Image.open(self.data[idx]["file_path"])
         tensor = torch.tensor(np.array(image), dtype = torch.float32)
         tensor = tensor.reshape([3,512,512])
-        labels  = labels.flatten()
         return tensor, labels.flatten()
 
 class CancerPredictionModel(pl.LightningModule):
@@ -128,20 +127,6 @@ path = os.path.join("multi-cancer", "Multi Cancer", "Multi Cancer")
 dataset = CancerTypesDataset(path)
 dataxd = dataset[0]
 model = CancerPredictionModel(dataset.out_features)
-#model.training_step(dataxd, 1)
 loader = DataLoader(dataset)
-trainer = pl.Trainer(max_epochs = 10)
+trainer = pl.Trainer(max_epochs = 100)
 trainer.fit(model, loader)
-
-"""
-loss_function = torch.nn.CrossEntropyLoss()
-optim = torch.optim.Adam(model.parameters())
-for i in range(100):
-    for data in loader:
-        inp, lab = data
-        out = model(inp)
-        lab = lab.flatten()
-        loss = loss_function(out,lab)
-        optim.step()
-        print(loss.item())
-"""
