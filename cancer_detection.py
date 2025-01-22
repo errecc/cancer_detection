@@ -73,6 +73,7 @@ class CancerTypesDataset(Dataset):
         tensor = tensor.reshape([3,512,512])
         return tensor, labels.flatten()
 
+
 class CancerPredictionModel(pl.LightningModule):
     def __init__(self, out_features):
         super().__init__()
@@ -115,18 +116,16 @@ class CancerPredictionModel(pl.LightningModule):
         return loss
 
 
+if __name__ == "__main__":
+    # Download the dataset
+    cancer_url = 'https://www.kaggle.com/datasets/obulisainaren/multi-cancer' 
+    od.download(cancer_url)
+    path = os.path.join("multi-cancer", "Multi Cancer", "Multi Cancer")
 
-
-# Download the dataset
-cancer_url = 'https://www.kaggle.com/datasets/obulisainaren/multi-cancer' 
-od.download(cancer_url)
-path = os.path.join("multi-cancer", "Multi Cancer", "Multi Cancer")
-
-
-# main loop
-dataset = CancerTypesDataset(path)
-dataxd = dataset[0]
-model = CancerPredictionModel(dataset.out_features)
-loader = DataLoader(dataset, num_workers=3)
-trainer = pl.Trainer(max_epochs = 100)
-trainer.fit(model, loader)
+    # main training from lightning
+    dataset = CancerTypesDataset(path)
+    dataxd = dataset[0]
+    model = CancerPredictionModel(dataset.out_features)
+    loader = DataLoader(dataset, num_workers=3)
+    trainer = pl.Trainer(max_epochs = 100)
+    trainer.fit(model, loader)
