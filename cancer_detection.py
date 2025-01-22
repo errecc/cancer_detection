@@ -117,8 +117,6 @@ class CancerPredictionModel(pl.LightningModule):
         lab = lab.flatten()
         loss = self.loss_fn(out, lab)
         self.log(f"t_loss", loss)
-        print(out , lab)
-        print(loss.item())
         return loss
 
 
