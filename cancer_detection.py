@@ -3,6 +3,7 @@ from torch.utils.data import Dataset, DataLoader
 import matplotlib.pyplot as plt
 import opendatasets as od
 import os
+from tqdm import tqdm
 import pytorch_lightning as pl
 import torch
 from PIL import Image
@@ -43,6 +44,7 @@ class CancerTypesDataset(Dataset):
         for j,i in enumerate(list(set(all_labels))):
             ls[i] = j
         self.data = []
+        self.out_features = len(ls)
         for d in all_data:
             data = {
                     "string_label": d["label"],
@@ -55,16 +57,27 @@ class CancerTypesDataset(Dataset):
         return len(self.data)
 
     def __getitem__(self, idx):
-        image = Image.open(self.data[idx]["file_path"])
+        # Label
         label = self.data[idx]["label"]
-        label = torch.tensor(label, dtype = torch.float32)
+        labels = []
+        for i in range(self.out_features):
+            if i == label:
+                labels.append(torch.tensor(1.))
+            else:
+                labels.append(torch.tensor(0.))
+        labels = torch.tensor(labels, dtype = torch.float32).flatten(0)
+        label = torch.tensor(label)
+        # Image
+        image = Image.open(self.data[idx]["file_path"])
         tensor = torch.tensor(np.array(image), dtype = torch.float32)
         tensor = tensor.reshape([3,512,512])
-        return tensor, label
+        labels  = labels.flatten()
+        return tensor, labels.flatten()
 
 class CancerPredictionModel(pl.LightningModule):
-    def __init__(self):
+    def __init__(self, out_features):
         super().__init__()
+        self.out_features = out_features
         self.loss_fn = torch.nn.CrossEntropyLoss()
         self.model = torch.nn.Sequential(
                 torch.nn.Conv2d(in_channels=3 , out_channels=16, kernel_size=10 ),
@@ -84,7 +97,7 @@ class CancerPredictionModel(pl.LightningModule):
                 torch.nn.ReLU(),
                 torch.nn.Linear(64,32),
                 torch.nn.ReLU(),
-                torch.nn.Linear(32,26),
+                torch.nn.Linear(32,out_features),
                 )
 
     def forward(self,x):
@@ -97,9 +110,11 @@ class CancerPredictionModel(pl.LightningModule):
     def training_step(self, batch, batch_idx):
         inp, lab = batch
         out = self(inp)
+        lab = lab.flatten()
         loss = self.loss_fn(out, lab)
         self.log(f"t_loss", loss)
         return loss
+
 
 
 
@@ -107,13 +122,26 @@ class CancerPredictionModel(pl.LightningModule):
 cancer_url = 'https://www.kaggle.com/datasets/obulisainaren/multi-cancer' 
 od.download(cancer_url)
 path = os.path.join("multi-cancer", "Multi Cancer", "Multi Cancer")
-#loss_function = torch.nn.CrossEntropyLoss()
-#optim = torch.optim.Adam(model.parameters())
 
 
 # main loop
 dataset = CancerTypesDataset(path)
-model = CancerPredictionModel()
-loader = DataLoader(dataset, batch_size = 1)
+dataxd = dataset[0]
+model = CancerPredictionModel(dataset.out_features)
+#model.training_step(dataxd, 1)
+loader = DataLoader(dataset)
 trainer = pl.Trainer(max_epochs = 10)
 trainer.fit(model, loader)
+
+"""
+loss_function = torch.nn.CrossEntropyLoss()
+optim = torch.optim.Adam(model.parameters())
+for i in range(100):
+    for data in loader:
+        inp, lab = data
+        out = model(inp)
+        lab = lab.flatten()
+        loss = loss_function(out,lab)
+        optim.step()
+        print(loss.item())
+"""
