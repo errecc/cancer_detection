@@ -81,8 +81,10 @@ class CancerPredictionModel(pl.LightningModule):
         self.loss_fn = torch.nn.CrossEntropyLoss()
         self.model = torch.nn.Sequential(
                 torch.nn.Conv2d(in_channels=3 , out_channels=16, kernel_size=10 ),
+                torch.nn.ReLU(),
                 torch.nn.MaxPool2d(4),
                 torch.nn.Conv2d(in_channels = 16, out_channels = 4, kernel_size = 5),
+                torch.nn.ReLU(),
                 torch.nn.MaxPool2d(2),
                 torch.nn.Flatten(0),
                 torch.nn.Linear(14400, 1024),
@@ -97,11 +99,13 @@ class CancerPredictionModel(pl.LightningModule):
                 torch.nn.ReLU(),
                 torch.nn.Linear(64,32),
                 torch.nn.ReLU(),
+                torch.nn.Softmax(),
                 torch.nn.Linear(32,out_features),
                 )
 
     def forward(self,x):
         outs = self.model(x)
+        #outs = torch.nn.functional.normalize(outs)
         return outs
 
     def configure_optimizers(self):
@@ -113,6 +117,8 @@ class CancerPredictionModel(pl.LightningModule):
         lab = lab.flatten()
         loss = self.loss_fn(out, lab)
         self.log(f"t_loss", loss)
+        print(out , lab)
+        print(loss.item())
         return loss
 
 
