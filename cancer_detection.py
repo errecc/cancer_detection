@@ -130,6 +130,6 @@ if __name__ == "__main__":
     dataset = CancerTypesDataset(path)
     dataxd = dataset[0]
     model = CancerPredictionModel(dataset.out_features)
-    loader = DataLoader(dataset, num_workers=3)
+    loader = DataLoader(dataset, num_workers=3 , shuffle=True)
     trainer = pl.Trainer(max_epochs = 100)
     trainer.fit(model, loader)
