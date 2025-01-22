@@ -111,7 +111,7 @@ class CancerPredictionModel(pl.LightningModule):
         out = self(inp)
         lab = lab.flatten()
         loss = self.loss_fn(out, lab)
-        self.log(f"t_loss", loss)
+        self.log(f"t_loss", loss, on_step=True, on_epoch=True)
         return loss
 
 
@@ -127,6 +127,6 @@ path = os.path.join("multi-cancer", "Multi Cancer", "Multi Cancer")
 dataset = CancerTypesDataset(path)
 dataxd = dataset[0]
 model = CancerPredictionModel(dataset.out_features)
-loader = DataLoader(dataset)
+loader = DataLoader(dataset, num_workers=3)
 trainer = pl.Trainer(max_epochs = 100)
 trainer.fit(model, loader)
